@@ -556,7 +556,7 @@
             <label class="field-label" for="monthlyIncomeInput">รายรับหรือเงินที่ได้รับต่อเดือน</label>
             <div class="currency-input-wrapper">
                 <span class="currency-symbol">฿</span>
-                <input type="number" id="monthlyIncomeInput" class="currency-input" value="23000" step="500" min="0"
+                <input type="number" id="monthlyIncomeInput" class="currency-input" value="0" step="500" min="0"
                     inputmode="numeric">
             </div>
         </section>
@@ -679,19 +679,43 @@
     <script>
         // ข้อมูลเริ่มต้นตรงตามในรูปเป๊ะ
         const defaultData = {
-            income: 23000,
+            income: 0,
             needs: [
-                { id: 'n1', label: 'ค่าอาหารประจำวัน', value: 3000, max: 10000, step: 100 },
-                { id: 'n2', label: 'ค่าเดินทาง / น้ำมัน', value: 900, max: 5000, step: 50 },
-                { id: 'n3', label: 'ค่าโทรศัพท์ / อินเทอร์เน็ต', value: 350, max: 2000, step: 50 }
+                { id: 'n1', label: 'ค่าอาหารประจำวัน', value: 0, max: 10000, step: 100 },
+                { id: 'n2', label: 'ค่าเดินทาง / น้ำมัน', value: 0, max: 5000, step: 50 },
+                { id: 'n3', label: 'ค่าโทรศัพท์ / อินเทอร์เน็ต', value: 0, max: 2000, step: 50 }
             ],
             wants: [
-                { id: 'w1', label: 'กินเที่ยวนอกบ้าน / คาเฟ่', value: 1200, max: 6000, step: 100 },
-                { id: 'w2', label: 'ช้อปปิ้ง / ซื้อของเล่น / บันเทิง', value: 800, max: 5000, step: 50 }
+                { id: 'w1', label: 'กินเที่ยวนอกบ้าน / คาเฟ่', value: 0, max: 6000, step: 100 },
+                { id: 'w2', label: 'ช้อปปิ้ง / ซื้อของเล่น / บันเทิง', value: 0, max: 5000, step: 50 }
             ]
         };
 
-        let state = JSON.parse(JSON.stringify(defaultData));
+        const STORAGE_KEY = 'financePlannerState';
+
+        // โหลดข้อมูลจาก localStorage ถ้ามี ไม่งั้นใช้ค่า default (0 ทั้งหมด)
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (e) {
+                console.warn('ไม่สามารถโหลดข้อมูลจาก localStorage:', e);
+            }
+            return JSON.parse(JSON.stringify(defaultData));
+        }
+
+        // บันทึกข้อมูลลง localStorage
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('ไม่สามารถบันทึกข้อมูลลง localStorage:', e);
+            }
+        }
+
+        let state = loadState();
         let activeModalCategory = null;
 
         function fmt(num) {
@@ -744,6 +768,7 @@
                     slider.value = val;
                     if (val > parseFloat(slider.max)) slider.max = val * 1.5;
                     recalculate();
+                    saveState();
                 });
 
                 slider.addEventListener('input', (e) => {
@@ -758,12 +783,15 @@
         function updateItemValue(cat, id, val) {
             const list = cat === 'needs' ? state.needs : state.wants;
             const target = list.find(i => i.id === id);
-            if (target) target.value = val;
+            if (target) {
+                target.value = val;
+            }
         }
 
         function recalculate() {
             const income = parseFloat(document.getElementById('monthlyIncomeInput').value) || 0;
             state.income = income;
+            saveState();
 
             const needsTotal = state.needs.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
             const wantsTotal = state.wants.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
@@ -866,12 +894,14 @@
 
             closeModal();
             renderItems();
+            saveState();
         }
 
         function resetToDefault() {
-            if (confirm('คุณต้องการรีเซ็ตค่าทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?')) {
+            if (confirm('คุณต้องการรีเซ็ตค่าทั้งหมดกลับเป็นค่าเริ่มต้น (0) หรือไม่?')) {
                 state = JSON.parse(JSON.stringify(defaultData));
                 document.getElementById('monthlyIncomeInput').value = state.income;
+                localStorage.removeItem(STORAGE_KEY);
                 renderItems();
             }
         }
@@ -900,6 +930,8 @@
             });
         }
 
+        // โหลดค่ารายรับจาก state ที่อ่านมาจาก localStorage
+        document.getElementById('monthlyIncomeInput').value = state.income;
         renderItems();
     </script>
 </body>
