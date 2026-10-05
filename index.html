@@ -422,6 +422,62 @@
             color: #a0a3b1;
         }
 
+        /* DCA Control Rows */
+        .dca-control-row {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .dca-control-row:first-of-type {
+            margin-top: 16px;
+        }
+
+        .dca-slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .dca-slider-label span {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .dca-slider-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--accent-green);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .dca-result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: rgba(56, 217, 118, 0.06);
+            border: 1px solid rgba(56, 217, 118, 0.12);
+            border-radius: 12px;
+        }
+
+        .dca-result-label {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .dca-result-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-shadow: 0 0 12px var(--accent-green-glow);
+        }
+
         /* Action Buttons */
         .action-row {
             display: flex;
@@ -634,10 +690,29 @@
                 <span>เป้าหมายเงินสำรองฉุกเฉิน (3 เดือน):</span>
                 <span class="insight-val" id="emergencyFundDisplay">฿0</span>
             </div>
-            <div class="insight-row">
-                <span>หากนำเงินเหลือไป DCA 10 ปี (ผลตอบแทน 8%/ปี):</span>
-                <span class="insight-val" id="compoundGrowthDisplay" style="color:var(--accent-green)">฿0</span>
+
+            <!-- DCA Controls -->
+            <div class="dca-control-row">
+                <div class="dca-slider-label">
+                    <span>📈 ผลตอบแทนต่อปี</span>
+                    <span class="dca-slider-value" id="dcaRateDisplay">8%</span>
+                </div>
+                <input type="range" id="dcaRateSlider" min="1" max="30" step="1" value="8">
             </div>
+
+            <div class="dca-control-row">
+                <div class="dca-slider-label">
+                    <span>📅 ระยะเวลาลงทุน</span>
+                    <span class="dca-slider-value" id="dcaYearsDisplay">10 ปี</span>
+                </div>
+                <input type="range" id="dcaYearsSlider" min="1" max="40" step="1" value="10">
+            </div>
+
+            <div class="dca-result-row">
+                <span class="dca-result-label">ผลตอบแทน DCA สะสม</span>
+                <span class="dca-result-amount" id="compoundGrowthDisplay">฿0</span>
+            </div>
+
             <p class="insight-tip" id="feedbackTip">
                 คำนวณเบื้องต้นเพื่อสุขภาพการเงินที่ดี เริ่มต้นเก็บเงินสำรองก่อนเป็นอันดับแรก
             </p>
@@ -834,17 +909,25 @@
             document.getElementById('legendWantsPct').innerText = `${rawWantsIncPct}%`;
             document.getElementById('legendSavingsPct').innerText = `${Math.max(0, savingsRate)}%`;
 
-            // คำนวณเงินสำรองและผลตอบแทน DCA 10 ปี
+            // คำนวณเงินสำรองและผลตอบแทน DCA
             const emergencyFund3M = totalExpense * 3;
             document.getElementById('emergencyFundDisplay').innerText = `฿${fmt(emergencyFund3M)}`;
 
-            let compound10Y = 0;
+            // อ่านค่า DCA จาก slider
+            const dcaRate = parseFloat(document.getElementById('dcaRateSlider').value) || 8;
+            const dcaYears = parseInt(document.getElementById('dcaYearsSlider').value) || 10;
+
+            // อัพเดท display ค่าที่เลือก
+            document.getElementById('dcaRateDisplay').innerText = `${dcaRate}%`;
+            document.getElementById('dcaYearsDisplay').innerText = `${dcaYears} ปี`;
+
+            let compoundResult = 0;
             if (savings > 0) {
-                const monthlyRate = 0.08 / 12;
-                const months = 120;
-                compound10Y = savings * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+                const monthlyRate = (dcaRate / 100) / 12;
+                const months = dcaYears * 12;
+                compoundResult = savings * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
             }
-            document.getElementById('compoundGrowthDisplay').innerText = `฿${fmt(Math.round(compound10Y))}`;
+            document.getElementById('compoundGrowthDisplay').innerText = `฿${fmt(Math.round(compoundResult))}`;
 
             // Smart Advice คำแนะนำตามสัดส่วนจริง
             const tipBox = document.getElementById('feedbackTip');
@@ -860,6 +943,19 @@
         }
 
         document.getElementById('monthlyIncomeInput').addEventListener('input', recalculate);
+
+        // DCA slider event listeners
+        document.getElementById('dcaRateSlider').addEventListener('input', function () {
+            state.dcaRate = parseInt(this.value);
+            saveState();
+            recalculate();
+        });
+
+        document.getElementById('dcaYearsSlider').addEventListener('input', function () {
+            state.dcaYears = parseInt(this.value);
+            saveState();
+            recalculate();
+        });
 
         function openModal(cat) {
             activeModalCategory = cat;
@@ -912,14 +1008,24 @@
             const wants = state.wants.reduce((s, i) => s + i.value, 0);
             const savings = income - (needs + wants);
 
+            const dcaRate = state.dcaRate || 8;
+            const dcaYears = state.dcaYears || 10;
+            let compoundResult = 0;
+            if (savings > 0) {
+                const monthlyRate = (dcaRate / 100) / 12;
+                const months = dcaYears * 12;
+                compoundResult = savings * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+            }
+
             const text = `📊 สรุปแผนการเงินส่วนบุคคล (วัย 19 ปี)\n` +
                 `-----------------------------\n` +
                 `💰 รายรับต่อเดือน: ฿${fmt(income)}\n` +
                 `📦 ค่าใช้จ่ายจำเป็น: ฿${fmt(needs)}\n` +
                 `☕ ค่าใช้จ่ายไลฟ์สไตล์: ฿${fmt(wants)}\n` +
                 `💸 รวมรายจ่าย: ฿${fmt(needs + wants)}\n` +
-                `🎯 เงินเหลือออม/ลงทุน: ฿${fmt(savings)} (อัตราออม ${Math.round((savings / income) * 100)}%)\n` +
+                `🎯 เงินเหลือออม/ลงทุน: ฿${fmt(savings)} (อัตราออม ${income > 0 ? Math.round((savings / income) * 100) : 0}%)\n` +
                 `🛡️ เงินสำรองฉุกเฉินเป้าหมาย (3 เดือน): ฿${fmt((needs + wants) * 3)}\n` +
+                `📈 DCA ${dcaYears} ปี (ผลตอบแทน ${dcaRate}%/ปี): ฿${fmt(Math.round(compoundResult))}\n` +
                 `-----------------------------\n` +
                 `สร้างผ่าน Finance Planner PWA`;
 
@@ -932,6 +1038,11 @@
 
         // โหลดค่ารายรับจาก state ที่อ่านมาจาก localStorage
         document.getElementById('monthlyIncomeInput').value = state.income;
+
+        // โหลดค่า DCA จาก state
+        if (state.dcaRate) document.getElementById('dcaRateSlider').value = state.dcaRate;
+        if (state.dcaYears) document.getElementById('dcaYearsSlider').value = state.dcaYears;
+
         renderItems();
     </script>
 </body>
