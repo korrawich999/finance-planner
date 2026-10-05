@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FinancePlanner">
+    <meta name="theme-color" content="#121214">
+    <title>วางแผนงบประมาณการเงิน (Finance Planner)</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #18191d;
+            --input-bg: #222328;
+            --text-main: #f0f0f3;
+            --text-muted: #8b8d98;
+            --accent-green: #38d976;
+            --accent-green-glow: rgba(56, 217, 118, 0.2);
+            --accent-blue: #6ba8ff;
+            --accent-red: #ff7666;
+            --border-color: #2a2b32;
+            --slider-track: #2e3038;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 24px);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 8px 4px 60px 4px;
+        }
+
+        /* Top Stats Grid */
+        .stats-header {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr 1fr;
+            text-align: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 12px 6px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.35;
+            margin-bottom: 6px;
+            font-weight: 400;
+        }
+
+        .stat-val {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .stat-val.primary {
+            font-size: 26px;
+            color: var(--accent-green);
+            text-shadow: 0 0 16px var(--accent-green-glow);
+        }
+
+        .stat-val.rate {
+            color: var(--accent-green);
+            font-size: 20px;
+        }
+
+        /* Income Input Card */
+        .field-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .field-label {
+            font-size: 14.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-weight: 500;
+            display: block;
+        }
+
+        .currency-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--input-bg);
+            border: 1px solid #33353e;
+            border-radius: 14px;
+            padding: 4px 14px;
+            transition: border-color 0.2s;
+        }
+
+        .currency-input-wrapper:focus-within {
+            border-color: var(--accent-blue);
+        }
+
+        .currency-symbol {
+            font-size: 18px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .currency-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        /* Ratio Progress Section */
+        .ratio-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: -0.2px;
+        }
+
+        .multi-progress-bar {
+            height: 12px;
+            width: 100%;
+            background: var(--slider-track);
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .progress-segment {
+            height: 100%;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .seg-needs {
+            background: var(--accent-blue);
+        }
+
+        .seg-wants {
+            background: var(--accent-red);
+        }
+
+        .seg-savings {
+            background: var(--accent-green);
+        }
+
+        .ratio-legend {
+            display: flex;
+            gap: 14px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Category Accordions */
+        .category-group {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .category-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .category-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .category-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-amount {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .chevron-icon {
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: transform 0.25s ease;
+        }
+
+        .category-group.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        .category-body {
+            display: none;
+            padding: 4px 18px 16px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .category-group.open .category-body {
+            display: block;
+        }
+
+        /* Expense Item Row */
+        .expense-row {
+            margin-top: 18px;
+        }
+
+        .expense-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .expense-name {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .expense-input-box {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 4px 10px;
+            width: 110px;
+            justify-content: flex-end;
+        }
+
+        .expense-input-box span {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .expense-num-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 14.5px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            height: 24px;
+            margin: 2px 0;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: var(--slider-track);
+            border-radius: 99px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            border: 2px solid #222;
+            transition: transform 0.1s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.15);
+        }
+
+        /* Add Item Button */
+        .btn-add-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            background: transparent;
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            border-radius: 12px;
+            padding: 9px;
+            margin-top: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-item:hover {
+            border-color: #4b4d58;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Emergency Fund & Insight Card */
+        .insight-card {
+            background: linear-gradient(145deg, #18191d 0%, #1e2027 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 16px 18px;
+            margin-top: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .insight-title {
+            font-size: 14.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .insight-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .insight-val {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .insight-tip {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 12.5px;
+            line-height: 1.5;
+            color: #a0a3b1;
+        }
+
+        /* Action Buttons */
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: #fff;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+            background: #252730;
+        }
+
+        .btn-reset {
+            color: #ff8585;
+            border-color: rgba(255, 118, 102, 0.25);
+        }
+
+        /* Modal for Adding Items */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #1c1d22;
+            border: 1px solid #33353e;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 360px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: #272830;
+            border: 1px solid #3f424f;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .modal-btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal-btn.cancel {
+            background: #2e303a;
+            color: var(--text-muted);
+        }
+
+        .modal-btn.confirm {
+            background: var(--accent-blue);
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="app-container">
+        <!-- Top 3 Stats Grid -->
+        <section class="stats-header">
+            <div class="stat-box">
+                <span class="stat-label">รายจ่ายทั้งหมด</span>
+                <span class="stat-val" id="totalExpenseDisplay">฿0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">เงินเหลือสำหรับ<br>ออมและลงทุน</span>
+                <span class="stat-val primary" id="remainingSavingsDisplay">฿0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">อัตราการออม</span>
+                <span class="stat-val rate" id="savingsRateDisplay">0%</span>
+            </div>
+        </section>
+
+        <!-- Monthly Income Card -->
+        <section class="field-card">
+            <label class="field-label" for="monthlyIncomeInput">รายรับหรือเงินที่ได้รับต่อเดือน</label>
+            <div class="currency-input-wrapper">
+                <span class="currency-symbol">฿</span>
+                <input type="number" id="monthlyIncomeInput" class="currency-input" value="23000" step="500" min="0"
+                    inputmode="numeric">
+            </div>
+        </section>
+
+        <!-- Breakdown Progress Bar -->
+        <section class="ratio-section">
+            <h2 class="section-title">สัดส่วนค่าใช้จ่าย</h2>
+            <div class="multi-progress-bar">
+                <div class="progress-segment seg-needs" id="segNeeds" style="width: 0%;"></div>
+                <div class="progress-segment seg-wants" id="segWants" style="width: 0%;"></div>
+                <div class="progress-segment seg-savings" id="segSavings" style="width: 0%;"></div>
+            </div>
+            <div class="ratio-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-blue);"></div>
+                    <span>จำเป็น: <b id="legendNeedsPct">0%</b></span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-red);"></div>
+                    <span>ไลฟ์สไตล์: <b id="legendWantsPct">0%</b></span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-green);"></div>
+                    <span>เงินออม: <b id="legendSavingsPct">0%</b></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category 1: Needs -->
+        <div class="category-group open" id="group-needs">
+            <div class="category-header" onclick="toggleCategory('group-needs')">
+                <div class="category-title-wrap">
+                    <div class="category-dot" style="background: var(--accent-blue);"></div>
+                    <span>ค่าใช้จ่ายจำเป็น (Needs) <span id="needsPctBadge"
+                            style="color:var(--text-muted); font-size:13px; font-weight:400;">0%</span></span>
+                </div>
+                <div class="category-right">
+                    <span class="category-amount" id="needsTotalDisplay">฿0</span>
+                    <span class="chevron-icon">&#9662;</span>
+                </div>
+            </div>
+            <div class="category-body" id="needsContainer">
+                <!-- รายการจะถูก render อัตโนมัติ -->
+            </div>
+        </div>
+
+        <!-- Category 2: Wants -->
+        <div class="category-group open" id="group-wants">
+            <div class="category-header" onclick="toggleCategory('group-wants')">
+                <div class="category-title-wrap">
+                    <div class="category-dot" style="background: var(--accent-red);"></div>
+                    <span>ไลฟ์สไตล์และความสุข (Wants) <span id="wantsPctBadge"
+                            style="color:var(--text-muted); font-size:13px; font-weight:400;">0%</span></span>
+                </div>
+                <div class="category-right">
+                    <span class="category-amount" id="wantsTotalDisplay">฿0</span>
+                    <span class="chevron-icon">&#9662;</span>
+                </div>
+            </div>
+            <div class="category-body" id="wantsContainer">
+                <!-- รายการจะถูก render อัตโนมัติ -->
+            </div>
+        </div>
+
+        <!-- Financial Insight Card -->
+        <div class="insight-card">
+            <div class="insight-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-green)">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                <span>วิเคราะห์เงินสำรอง & การลงทุน (สำหรับวัย 19 ปี)</span>
+            </div>
+            <div class="insight-row">
+                <span>เป้าหมายเงินสำรองฉุกเฉิน (3 เดือน):</span>
+                <span class="insight-val" id="emergencyFundDisplay">฿0</span>
+            </div>
+            <div class="insight-row">
+                <span>หากนำเงินเหลือไป DCA 10 ปี (ผลตอบแทน 8%/ปี):</span>
+                <span class="insight-val" id="compoundGrowthDisplay" style="color:var(--accent-green)">฿0</span>
+            </div>
+            <p class="insight-tip" id="feedbackTip">
+                คำนวณเบื้องต้นเพื่อสุขภาพการเงินที่ดี เริ่มต้นเก็บเงินสำรองก่อนเป็นอันดับแรก
+            </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-row">
+            <button class="btn-action" onclick="copySummaryText()">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path
+                        d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z" />
+                    <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+                </svg>
+                คัดลอกสรุป
+            </button>
+            <button class="btn-action btn-reset" onclick="resetToDefault()">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                </svg>
+                รีเซ็ตค่าเริ่มต้น
+            </button>
+        </div>
+    </main>
+
+    <!-- Add Item Modal -->
+    <div class="modal-overlay" id="addItemModal">
+        <div class="modal-box">
+            <h3 class="modal-title" id="modalTitle">เพิ่มรายการใหม่</h3>
+            <input type="text" id="newItemName" class="modal-input" placeholder="ชื่อรายการ เช่น ค่าเน็ตหอพัก">
+            <input type="number" id="newItemAmount" class="modal-input" placeholder="จำนวนเงิน (บาท)" step="50">
+            <div class="modal-btn-row">
+                <button class="modal-btn cancel" onclick="closeModal()">ยกเลิก</button>
+                <button class="modal-btn confirm" onclick="confirmAddItem()">เพิ่มรายการ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูลเริ่มต้นตรงตามในรูปเป๊ะ
+        const defaultData = {
+            income: 23000,
+            needs: [
+                { id: 'n1', label: 'ค่าอาหารประจำวัน', value: 3000, max: 10000, step: 100 },
+                { id: 'n2', label: 'ค่าเดินทาง / น้ำมัน', value: 900, max: 5000, step: 50 },
+                { id: 'n3', label: 'ค่าโทรศัพท์ / อินเทอร์เน็ต', value: 350, max: 2000, step: 50 }
+            ],
+            wants: [
+                { id: 'w1', label: 'กินเที่ยวนอกบ้าน / คาเฟ่', value: 1200, max: 6000, step: 100 },
+                { id: 'w2', label: 'ช้อปปิ้ง / ซื้อของเล่น / บันเทิง', value: 800, max: 5000, step: 50 }
+            ]
+        };
+
+        let state = JSON.parse(JSON.stringify(defaultData));
+        let activeModalCategory = null;
+
+        function fmt(num) {
+            return Number(num || 0).toLocaleString('th-TH');
+        }
+
+        function toggleCategory(id) {
+            document.getElementById(id).classList.toggle('open');
+        }
+
+        function renderItems() {
+            const needsBox = document.getElementById('needsContainer');
+            needsBox.innerHTML = state.needs.map(item => createItemHTML(item, 'needs')).join('') +
+                `<button class="btn-add-item" onclick="openModal('needs')">+ เพิ่มรายการจำเป็น</button>`;
+
+            const wantsBox = document.getElementById('wantsContainer');
+            wantsBox.innerHTML = state.wants.map(item => createItemHTML(item, 'wants')).join('') +
+                `<button class="btn-add-item" onclick="openModal('wants')">+ เพิ่มรายการความสุข</button>`;
+
+            attachEventListeners();
+            recalculate();
+        }
+
+        function createItemHTML(item, cat) {
+            const dynamicMax = Math.max(item.max || 5000, item.value * 2, 2000);
+            return `
+        <div class="expense-row" data-id="${item.id}" data-cat="${cat}">
+          <div class="expense-label-row">
+            <span class="expense-name">${item.label}</span>
+            <div class="expense-input-box">
+              <span>฿</span>
+              <input type="number" class="expense-num-input" value="${item.value}" min="0" step="${item.step || 50}" inputmode="numeric">
+            </div>
+          </div>
+          <input type="range" min="0" max="${dynamicMax}" step="${item.step || 50}" value="${item.value}">
+        </div>
+      `;
+        }
+
+        function attachEventListeners() {
+            document.querySelectorAll('.expense-row').forEach(row => {
+                const id = row.getAttribute('data-id');
+                const cat = row.getAttribute('data-cat');
+                const numInput = row.querySelector('.expense-num-input');
+                const slider = row.querySelector('input[type=range]');
+
+                numInput.addEventListener('input', (e) => {
+                    let val = Math.max(0, parseFloat(e.target.value) || 0);
+                    updateItemValue(cat, id, val);
+                    slider.value = val;
+                    if (val > parseFloat(slider.max)) slider.max = val * 1.5;
+                    recalculate();
+                });
+
+                slider.addEventListener('input', (e) => {
+                    let val = parseFloat(e.target.value) || 0;
+                    updateItemValue(cat, id, val);
+                    numInput.value = val;
+                    recalculate();
+                });
+            });
+        }
+
+        function updateItemValue(cat, id, val) {
+            const list = cat === 'needs' ? state.needs : state.wants;
+            const target = list.find(i => i.id === id);
+            if (target) target.value = val;
+        }
+
+        function recalculate() {
+            const income = parseFloat(document.getElementById('monthlyIncomeInput').value) || 0;
+            state.income = income;
+
+            const needsTotal = state.needs.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
+            const wantsTotal = state.wants.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
+            const totalExpense = needsTotal + wantsTotal;
+            const savings = income - totalExpense;
+
+            // Stats ด้านบน
+            document.getElementById('totalExpenseDisplay').innerText = `฿${fmt(totalExpense)}`;
+
+            const savingsDisp = document.getElementById('remainingSavingsDisplay');
+            savingsDisp.innerText = `฿${fmt(savings)}`;
+            savingsDisp.style.color = savings < 0 ? 'var(--accent-red)' : 'var(--accent-green)';
+
+            const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
+            document.getElementById('savingsRateDisplay').innerText = `${savingsRate}%`;
+
+            // ยอดรวมแต่ละหมวด
+            document.getElementById('needsTotalDisplay').innerText = `฿${fmt(needsTotal)}`;
+            document.getElementById('wantsTotalDisplay').innerText = `฿${fmt(wantsTotal)}`;
+
+            const needsPct = totalExpense > 0 ? Math.round((needsTotal / totalExpense) * 100) : 0;
+            const wantsPct = totalExpense > 0 ? Math.round((wantsTotal / totalExpense) * 100) : 0;
+            document.getElementById('needsPctBadge').innerText = `${needsPct}%`;
+            document.getElementById('wantsPctBadge').innerText = `${wantsPct}%`;
+
+            // Progress bar Multi-segment
+            const denominator = Math.max(income, totalExpense, 1);
+            const segNeedsWidth = ((needsTotal / denominator) * 100);
+            const segWantsWidth = ((wantsTotal / denominator) * 100);
+            const segSavingsWidth = Math.max(0, ((savings / denominator) * 100));
+
+            document.getElementById('segNeeds').style.width = `${segNeedsWidth}%`;
+            document.getElementById('segWants').style.width = `${segWantsWidth}%`;
+            document.getElementById('segSavings').style.width = `${segSavingsWidth}%`;
+
+            // ตัวเลขสัดส่วนในคำอธิบาย
+            const rawNeedsIncPct = income > 0 ? Math.round((needsTotal / income) * 100) : 0;
+            const rawWantsIncPct = income > 0 ? Math.round((wantsTotal / income) * 100) : 0;
+            document.getElementById('legendNeedsPct').innerText = `${rawNeedsIncPct}%`;
+            document.getElementById('legendWantsPct').innerText = `${rawWantsIncPct}%`;
+            document.getElementById('legendSavingsPct').innerText = `${Math.max(0, savingsRate)}%`;
+
+            // คำนวณเงินสำรองและผลตอบแทน DCA 10 ปี
+            const emergencyFund3M = totalExpense * 3;
+            document.getElementById('emergencyFundDisplay').innerText = `฿${fmt(emergencyFund3M)}`;
+
+            let compound10Y = 0;
+            if (savings > 0) {
+                const monthlyRate = 0.08 / 12;
+                const months = 120;
+                compound10Y = savings * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+            }
+            document.getElementById('compoundGrowthDisplay').innerText = `฿${fmt(Math.round(compound10Y))}`;
+
+            // Smart Advice คำแนะนำตามสัดส่วนจริง
+            const tipBox = document.getElementById('feedbackTip');
+            if (savings < 0) {
+                tipBox.innerHTML = `⚠️️ <b style="color:var(--accent-red)">รายจ่ายเกินรายรับ ฿${fmt(Math.abs(savings))}</b> แนะนำให้ลดสัดส่วนของหมวดไลฟ์สไตล์ลงเพื่อป้องกันการก่อหนี้`;
+            } else if (rawNeedsIncPct > 60) {
+                tipBox.innerHTML = `💡 สัดส่วนค่าใช้จ่ายจำเป็นค่อนข้างสูง (${rawNeedsIncPct}%) พยายามคุมค่าเดินทาง/อาหาร และเน้นเพิ่มรายได้เสริม`;
+            } else if (savingsRate >= 50) {
+                tipBox.innerHTML = `🔥 <b style="color:var(--accent-green)">ยอดเยี่ยมมาก!</b> อัตราการออมสูงถึง ${savingsRate}% หากทำต่อเนื่อง พลังดอกเบี้ยทบต้นจะสร้างผลตอบแทนมหาศาล`;
+            } else {
+                tipBox.innerHTML = `🎯 สัดส่วนลงตัวตามเกณฑ์ 50/30/20 แบ่งเงินออมก้อนนี้ไว้ใน e-Saving ดอกเบี้ยสูง และแบ่งลงทุน DCA กองทุนดัชนีอย่างสม่ำเสมอ`;
+            }
+        }
+
+        document.getElementById('monthlyIncomeInput').addEventListener('input', recalculate);
+
+        function openModal(cat) {
+            activeModalCategory = cat;
+            document.getElementById('modalTitle').innerText = cat === 'needs' ? 'เพิ่มรายการจำเป็น' : 'เพิ่มรายการไลฟ์สไตล์';
+            document.getElementById('newItemName').value = '';
+            document.getElementById('newItemAmount').value = '';
+            document.getElementById('addItemModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('addItemModal').classList.remove('active');
+        }
+
+        function confirmAddItem() {
+            const name = document.getElementById('newItemName').value.trim();
+            const amount = parseFloat(document.getElementById('newItemAmount').value) || 0;
+            if (!name) return alert('กรุณาระบุชื่อรายการ');
+
+            const newItem = {
+                id: 'item_' + Date.now(),
+                label: name,
+                value: amount,
+                max: Math.max(5000, amount * 2),
+                step: 50
+            };
+
+            if (activeModalCategory === 'needs') {
+                state.needs.push(newItem);
+            } else {
+                state.wants.push(newItem);
+            }
+
+            closeModal();
+            renderItems();
+        }
+
+        function resetToDefault() {
+            if (confirm('คุณต้องการรีเซ็ตค่าทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?')) {
+                state = JSON.parse(JSON.stringify(defaultData));
+                document.getElementById('monthlyIncomeInput').value = state.income;
+                renderItems();
+            }
+        }
+
+        function copySummaryText() {
+            const income = state.income;
+            const needs = state.needs.reduce((s, i) => s + i.value, 0);
+            const wants = state.wants.reduce((s, i) => s + i.value, 0);
+            const savings = income - (needs + wants);
+
+            const text = `📊 สรุปแผนการเงินส่วนบุคคล (วัย 19 ปี)\n` +
+                `-----------------------------\n` +
+                `💰 รายรับต่อเดือน: ฿${fmt(income)}\n` +
+                `📦 ค่าใช้จ่ายจำเป็น: ฿${fmt(needs)}\n` +
+                `☕ ค่าใช้จ่ายไลฟ์สไตล์: ฿${fmt(wants)}\n` +
+                `💸 รวมรายจ่าย: ฿${fmt(needs + wants)}\n` +
+                `🎯 เงินเหลือออม/ลงทุน: ฿${fmt(savings)} (อัตราออม ${Math.round((savings / income) * 100)}%)\n` +
+                `🛡️ เงินสำรองฉุกเฉินเป้าหมาย (3 เดือน): ฿${fmt((needs + wants) * 3)}\n` +
+                `-----------------------------\n` +
+                `สร้างผ่าน Finance Planner PWA`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('คัดลอกสรุปแผนการเงินไปยังคลิปบอร์ดแล้ว!');
+            }).catch(() => {
+                alert('ไม่สามารถคัดลอกได้โดยอัตโนมัติ');
+            });
+        }
+
+        renderItems();
+    </script>
+</body>
+
+</html>
